@@ -8,6 +8,12 @@ export const OPENAPI_CONFIG = {
     title: "Better Auth Sandbox API",
     description: "API documentation for Better Auth Sandbox",
   },
+  servers: [
+    {
+      url: "http://localhost:3000",
+      description: "Development server",
+    },
+  ],
 };
 
 export const SECURITY_SCHEME = {

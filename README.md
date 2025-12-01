@@ -10,6 +10,7 @@ Hono + Better Auth + Drizzle ORM + PostgreSQL のサンドボックスプロジ�
 - **データベース**: PostgreSQL 15
 - **バリデーション**: Zod + drizzle-zod
 - **API ドキュメント**: OpenAPI 3.0 + Swagger UI
+- **メール**: [Mailpit](https://mailpit.axllent.org/) (開発用メールキャッチャー)
 - **ランタイム**: Node.js
 
 ## セットアップ
@@ -25,6 +26,16 @@ docker compose up -d
 ```
 
 サーバーが `http://localhost:3000` で起動します。
+
+### サービス一覧
+
+| サービス | URL | 説明 |
+|---------|-----|------|
+| アプリケーション | http://localhost:3000 | Hono サーバー |
+| 認証 UI | http://localhost:3000/ui | Better Auth 検証用 UI |
+| Swagger UI | http://localhost:3000/api/ui | API ドキュメント |
+| Mailpit | http://localhost:8025 | メール確認用 Web UI |
+| PostgreSQL | localhost:5432 | データベース |
 
 ### データベースマイグレーション
 
@@ -45,6 +56,18 @@ docker compose exec node pnpm db:push
 |---------------|------|
 | `/api/ui` | Swagger UI (対話的なAPIドキュメント) |
 | `/api/doc` | OpenAPI スキーマ (JSON) |
+
+## 認証 UI
+
+認証機能のテスト用 UI が用意されています。
+
+| エンドポイント | 説明 |
+|---------------|------|
+| `/ui` | ホーム (セッション情報表示) |
+| `/ui/signin` | サインイン |
+| `/ui/signup` | サインアップ |
+
+サインアップ時にメール確認メールが送信されます。Mailpit (http://localhost:8025) でメールを確認できます。
 
 ## API エンドポイント
 
@@ -133,11 +156,19 @@ src/
 │   ├── schema.ts         # テーブル定義 & Zodスキーマ
 │   └── soft-delete.ts    # ソフトデリートヘルパー
 ├── lib/
-│   └── auth.ts           # Better Auth 設定
+│   ├── auth.ts           # Better Auth 設定
+│   ├── email.ts          # メール送信ユーティリティ
+│   └── openapi.ts        # OpenAPI 設定
 ├── middleware/
 │   └── session.ts        # セッションミドルウェア
+├── views/                # JSX ビューコンポーネント
+│   ├── Layout.tsx        # 共通レイアウト
+│   ├── Home.tsx          # ホームページ
+│   ├── SignIn.tsx        # サインインページ
+│   └── SignUp.tsx        # サインアップページ
 └── routes/
     ├── auth.ts           # 認証ルート（Better Auth ハンドラー）
     ├── session.ts        # セッションルート
-    └── samples.ts        # サンプルCRUDルート
+    ├── samples.ts        # サンプルCRUDルート
+    └── ui.tsx            # 認証 UI ルート
 ```

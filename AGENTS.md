@@ -6,6 +6,23 @@
 
 このプロジェクトは Docker Compose を使用してコンテナ化された開発環境で動作します。
 
+### サービス一覧
+
+| サービス | ポート | 説明 |
+|---------|--------|------|
+| node | 3000 | アプリケーションサーバー |
+| db | 5432 | PostgreSQL データベース |
+| mailpit | 8025 (UI), 1025 (SMTP) | 開発用メールキャッチャー |
+
+### Mailpit
+
+Mailpit は開発環境でメールをキャッチするためのツールです。
+
+- **Web UI**: http://localhost:8025 - 送信されたメールを確認
+- **SMTP**: `mailpit:1025` - コンテナ内からのメール送信先
+
+サインアップ時のメール確認やパスワードリセットメールは Mailpit で確認できます。
+
 ## pnpm コマンドの実行
 
 **重要**: すべての `pnpm` コマンドは Docker Compose を通じてコンテナ内で実行してください。
@@ -55,13 +72,21 @@ src/
 │   ├── schema.ts         # テーブル定義 & Zodスキーマ
 │   └── soft-delete.ts    # ソフトデリートヘルパー
 ├── lib/
-│   └── auth.ts           # Better Auth 設定
+│   ├── auth.ts           # Better Auth 設定
+│   ├── email.ts          # メール送信ユーティリティ (nodemailer)
+│   └── openapi.ts        # OpenAPI 設定
 ├── middleware/
 │   └── session.ts        # セッションミドルウェア
+├── views/                # JSX ビューコンポーネント (Hono JSX)
+│   ├── Layout.tsx        # 共通レイアウト
+│   ├── Home.tsx          # ホームページ
+│   ├── SignIn.tsx        # サインインページ
+│   └── SignUp.tsx        # サインアップページ
 └── routes/
     ├── auth.ts           # 認証ルート（Better Auth ハンドラー）
     ├── session.ts        # セッションルート (OpenAPIHono)
-    └── samples.ts        # サンプルCRUDルート (OpenAPIHono)
+    ├── samples.ts        # サンプルCRUDルート (OpenAPIHono)
+    └── ui.tsx            # 認証 UI ルート (Hono JSX)
 ```
 
 ### 技術スタック
@@ -72,6 +97,8 @@ src/
 - **データベース**: PostgreSQL 15
 - **バリデーション**: Zod + @hono/zod-openapi + drizzle-zod
 - **API ドキュメント**: OpenAPI 3.0 + Swagger UI
+- **メール**: Mailpit (開発用) + nodemailer
+- **UI**: Hono JSX + TailwindCSS (CDN)
 
 ## コーディング規約
 

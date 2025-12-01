@@ -7,6 +7,7 @@ import { sessionMiddleware } from "./middleware/session.js";
 import authRoutes from "./routes/auth.js";
 import sessionRoutes from "./routes/session.js";
 import samplesRoutes from "./routes/samples.js";
+import uiRoutes from "./routes/ui.js";
 
 const PORT = 3000;
 
@@ -22,7 +23,8 @@ const routes = app
   .get("/", (c) => c.text("Hello Hono!"))
   .route("/api/auth", authRoutes)
   .route("/api/sessions", sessionRoutes)
-  .route("/api/samples", samplesRoutes);
+  .route("/api/samples", samplesRoutes)
+  .route("/ui", uiRoutes);
 
 // OpenAPI
 app.openAPIRegistry.registerComponent("securitySchemes", "Bearer", SECURITY_SCHEME);
