@@ -37,6 +37,7 @@ app.post("/signin", async (c) => {
         email,
         password,
       },
+      headers: c.req.header(),
       asResponse: true,
     });
 
@@ -83,6 +84,7 @@ app.post("/signup", async (c) => {
         password,
         callbackURL: "/ui",
       },
+      headers: c.req.raw.headers,
       asResponse: true,
     });
 
@@ -163,11 +165,13 @@ app.post("/otp-signin", async (c) => {
 
     try {
       // asResponse: true を使用してSet-Cookieヘッダーを取得
+      // headers を渡すことで Cookie が正しく処理される
       const response = await auth.api.signInEmailOTP({
         body: {
           email,
           otp,
         },
+        headers: c.req.raw.headers,
         asResponse: true,
       });
 
