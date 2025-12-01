@@ -55,11 +55,17 @@ export const SignIn: FC<SignInProps> = ({ error }) => {
             </button>
           </form>
 
-          <div class="mt-6 text-center">
+          <div class="mt-6 text-center space-y-2">
             <p class="text-sm text-gray-600">
               Don't have an account?{" "}
               <a href="/ui/signup" class="text-blue-600 hover:text-blue-700 font-medium">
                 Sign Up
+              </a>
+            </p>
+            <p class="text-sm text-gray-600">
+              パスワード不要でサインイン？{" "}
+              <a href="/ui/otp-signin" class="text-blue-600 hover:text-blue-700 font-medium">
+                OTPでサインイン
               </a>
             </p>
           </div>

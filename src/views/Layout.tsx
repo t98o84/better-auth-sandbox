@@ -25,6 +25,7 @@ export const Layout: FC<LayoutProps> = ({ children, title = "Better Auth Sandbox
               <div class="flex items-center space-x-4">
                 <a href="/ui" class="text-gray-600 hover:text-gray-900">Home</a>
                 <a href="/ui/signin" class="text-gray-600 hover:text-gray-900">Sign In</a>
+                <a href="/ui/otp-signin" class="text-gray-600 hover:text-gray-900">OTP Sign In</a>
                 <a href="/ui/signup" class="text-gray-600 hover:text-gray-900">Sign Up</a>
               </div>
             </div>

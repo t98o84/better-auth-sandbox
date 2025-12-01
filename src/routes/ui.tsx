@@ -1,10 +1,11 @@
 import { Hono } from "hono";
-import { setCookie, deleteCookie } from "hono/cookie";
+import { deleteCookie } from "hono/cookie";
 import type { AuthType } from "../lib/auth.js";
 import { auth } from "../lib/auth.js";
 import { Home } from "../views/Home.js";
 import { SignIn } from "../views/SignIn.js";
 import { SignUp } from "../views/SignUp.js";
+import SignInOTP from "../views/SignInOTP.js";
 
 const app = new Hono<{
   Variables: AuthType;
@@ -30,21 +31,22 @@ app.post("/signin", async (c) => {
   const password = body.password as string;
 
   try {
+    // asResponse: true を使用して Set-Cookie ヘッダーを取得
     const response = await auth.api.signInEmail({
       body: {
         email,
         password,
       },
+      asResponse: true,
     });
 
-    if (response.token) {
-      setCookie(c, "better_auth_session_token", response.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "Lax",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-      });
+    // Better Auth が設定した Set-Cookie ヘッダーを取得
+    const setCookieHeader = response.headers.get('set-cookie');
+    
+    if (setCookieHeader) {
+      const redirectResponse = c.redirect("/ui");
+      redirectResponse.headers.set('Set-Cookie', setCookieHeader);
+      return redirectResponse;
     }
 
     return c.redirect("/ui");
@@ -73,6 +75,7 @@ app.post("/signup", async (c) => {
   }
 
   try {
+    // asResponse: true を使用して Set-Cookie ヘッダーを取得
     const response = await auth.api.signUpEmail({
       body: {
         name,
@@ -80,16 +83,16 @@ app.post("/signup", async (c) => {
         password,
         callbackURL: "/ui",
       },
+      asResponse: true,
     });
 
-    if (response.token) {
-      setCookie(c, "better_auth_session_token", response.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "Lax",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-      });
+    // Better Auth が設定した Set-Cookie ヘッダーを取得
+    const setCookieHeader = response.headers.get('set-cookie');
+    
+    if (setCookieHeader) {
+      const redirectResponse = c.redirect("/ui");
+      redirectResponse.headers.set('Set-Cookie', setCookieHeader);
+      return redirectResponse;
     }
 
     return c.redirect("/ui");
@@ -113,11 +116,80 @@ app.post("/signout", async (c) => {
     }
   }
 
-  deleteCookie(c, "better_auth_session_token", {
+  deleteCookie(c, "better-auth.session_token", {
     path: "/",
   });
 
   return c.redirect("/ui");
+});
+
+// OTP Sign In page
+app.get("/otp-signin", (c) => {
+  const error = c.req.query("error");
+  const message = c.req.query("message");
+  return c.html(<SignInOTP error={error} message={message} />);
+});
+
+// OTP Sign In action
+app.post("/otp-signin", async (c) => {
+  const body = await c.req.parseBody();
+  const action = body.action as string;
+  const email = body.email as string;
+
+  if (action === "send-otp") {
+    try {
+      await auth.api.sendVerificationOTP({
+        body: {
+          email,
+          type: "sign-in",
+        },
+      });
+
+      return c.html(
+        <SignInOTP
+          step="otp"
+          email={email}
+          message="OTPをメールに送信しました。確認してください。"
+        />
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "OTPの送信に失敗しました";
+      return c.html(<SignInOTP error={message} email={email} />);
+    }
+  }
+
+  if (action === "verify-otp") {
+    const otp = body.otp as string;
+
+    try {
+      // asResponse: true を使用してSet-Cookieヘッダーを取得
+      const response = await auth.api.signInEmailOTP({
+        body: {
+          email,
+          otp,
+        },
+        asResponse: true,
+      });
+
+      // Better Auth が設定した Set-Cookie ヘッダーを取得
+      const setCookieHeader = response.headers.get('set-cookie');
+      console.log('[OTP] Set-Cookie header:', setCookieHeader);
+      
+      if (setCookieHeader) {
+        // レスポンスにSet-Cookieヘッダーをコピー
+        const redirectResponse = c.redirect("/ui");
+        redirectResponse.headers.set('Set-Cookie', setCookieHeader);
+        return redirectResponse;
+      }
+
+      return c.redirect("/ui");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "OTPの検証に失敗しました";
+      return c.html(<SignInOTP step="otp" email={email} error={message} />);
+    }
+  }
+
+  return c.redirect("/ui/otp-signin");
 });
 
 export default app;

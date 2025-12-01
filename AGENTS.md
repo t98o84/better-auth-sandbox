@@ -58,7 +58,7 @@ docker compose exec node pnpm drizzle-kit migrate
 ### 注意事項
 
 - ホストマシンで直接 `pnpm` コマンドを実行しないでください
-- コンテナが起動していることを確認してから実行してください（`docker compose up -d`）
+- コンテナが起動していることを確認して（`docker compose ps`）、起動してなければ起動してから実行してください（`docker compose up -d`）
 
 ## プロジェクト構成
 
