@@ -8,6 +8,20 @@
       "when": 1764584840991,
       "tag": "0000_brown_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1764585978684,
+      "tag": "0001_noisy_mysterio",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764586121870,
+      "tag": "0002_aromatic_quasimodo",
+      "breakpoints": true
     }
   ]
 }

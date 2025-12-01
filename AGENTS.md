@@ -42,3 +42,101 @@ docker compose exec node pnpm drizzle-kit migrate
 
 - ホストマシンで直接 `pnpm` コマンドを実行しないでください
 - コンテナが起動していることを確認してから実行してください（`docker compose up -d`）
+
+## プロジェクト構成
+
+### ディレクトリ構成
+
+```
+src/
+├── index.ts              # エントリポイント & ルートマウント & OpenAPI設定
+├── db/
+│   ├── index.ts          # DB接続 (Drizzle)
+│   ├── schema.ts         # テーブル定義 & Zodスキーマ
+│   └── soft-delete.ts    # ソフトデリートヘルパー
+├── lib/
+│   └── auth.ts           # Better Auth 設定
+├── middleware/
+│   └── session.ts        # セッションミドルウェア
+└── routes/
+    ├── auth.ts           # 認証ルート（Better Auth ハンドラー）
+    ├── session.ts        # セッションルート (OpenAPIHono)
+    └── samples.ts        # サンプルCRUDルート (OpenAPIHono)
+```
+
+### 技術スタック
+
+- **フレームワーク**: Hono (OpenAPIHono)
+- **認証**: Better Auth
+- **ORM**: Drizzle ORM
+- **データベース**: PostgreSQL 15
+- **バリデーション**: Zod + @hono/zod-openapi + drizzle-zod
+- **API ドキュメント**: OpenAPI 3.0 + Swagger UI
+
+## コーディング規約
+
+### ルートの追加
+
+1. **新しいルートファイルの作成**: `src/routes/` に新しいファイルを作成
+2. **OpenAPIHono を使用**: 型安全なAPIのために `OpenAPIHono` と `createRoute` を使用
+3. **Zodスキーマを定義**: リクエスト・レスポンスのスキーマを定義
+4. **チェーン形式で記述**: RPC型推論のためにメソッドチェーンで記述
+5. **index.ts でマウント**: `app.route()` でルートをマウント
+
+### ルートファイルのテンプレート
+
+```typescript
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+
+// Schemas
+const ResponseSchema = z.object({
+  // ...
+}).openapi("ResponseName");
+
+// Routes
+const exampleRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["TagName"],
+  summary: "Short description",
+  description: "Detailed description",
+  security: [{ Bearer: [] }], // 認証が必要な場合
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: ResponseSchema,
+        },
+      },
+      description: "Success",
+    },
+  },
+});
+
+// App
+const app = new OpenAPIHono()
+  .openapi(exampleRoute, async (c) => {
+    // Handler implementation
+    return c.json({ /* response */ }, 200);
+  });
+
+export default app;
+```
+
+### 認証
+
+- 認証が必要なルートには `security: [{ Bearer: [] }]` を追加
+- セッション情報は `c.get("session")` と `c.get("user")` で取得
+
+### データベース
+
+- テーブル定義は `src/db/schema.ts` に追加
+- ソフトデリートを使用する場合は `whereAndExcludeDeleted` ヘルパーを使用
+- マイグレーションは `docker compose exec node pnpm db:generate` で生成
+
+## APIドキュメント
+
+- **Swagger UI**: `http://localhost:3000/api/ui`
+- **OpenAPI スキーマ**: `http://localhost:3000/api/doc`
+
+Better Auth と アプリケーションの API が統合されて表示されます。

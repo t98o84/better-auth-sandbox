@@ -1,73 +1,37 @@
-import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
-import { db } from './db/index.js'
-import { samples } from './db/schema.js'
-import { whereAndExcludeDeleted } from './db/soft-delete.js'
-import { eq } from 'drizzle-orm'
+import { serve } from "@hono/node-server";
+import { OpenAPIHono } from "@hono/zod-openapi";
+import { swaggerUI } from "@hono/swagger-ui";
+import type { AuthType } from "./lib/auth.js";
+import { getMergedOpenAPISchema, SECURITY_SCHEME } from "./lib/openapi.js";
+import { sessionMiddleware } from "./middleware/session.js";
+import authRoutes from "./routes/auth.js";
+import sessionRoutes from "./routes/session.js";
+import samplesRoutes from "./routes/samples.js";
 
-const app = new Hono()
+const PORT = 3000;
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+const app = new OpenAPIHono<{
+  Variables: AuthType;
+}>();
 
-// GET /samples - 全件取得（削除済み除外）
-app.get('/samples', async (c) => {
-  const result = await db.select().from(samples).where(whereAndExcludeDeleted(samples))
-  return c.json(result)
-})
+// Middleware
+app.use("*", sessionMiddleware);
 
-// GET /samples/:id - 1件取得（削除済み除外）
-app.get('/samples/:id', async (c) => {
-  const id = c.req.param('id')
-  const result = await db.select().from(samples).where(
-    whereAndExcludeDeleted(samples, eq(samples.id, id))
-  )
-  if (result.length === 0) {
-    return c.json({ error: 'Not found' }, 404)
-  }
-  return c.json(result[0])
-})
+// Routes (chained for RPC type inference)
+const routes = app
+  .get("/", (c) => c.text("Hello Hono!"))
+  .route("/api/auth", authRoutes)
+  .route("/api/sessions", sessionRoutes)
+  .route("/api/samples", samplesRoutes);
 
-// POST /samples - 作成
-app.post('/samples', async (c) => {
-  const body = await c.req.json()
-  const result = await db.insert(samples).values({
-    text: body.text,
-  }).returning()
-  return c.json(result[0], 201)
-})
+// OpenAPI
+app.openAPIRegistry.registerComponent("securitySchemes", "Bearer", SECURITY_SCHEME);
+app.get("/api/doc", async (c) => c.json(await getMergedOpenAPISchema(app)));
+app.get("/api/ui", swaggerUI({ url: "/api/doc" }));
 
-// PUT /samples/:id - 更新（削除済み除外）
-app.put('/samples/:id', async (c) => {
-  const id = c.req.param('id')
-  const body = await c.req.json()
-  const result = await db.update(samples)
-    .set({ text: body.text, updatedAt: new Date() })
-    .where(whereAndExcludeDeleted(samples, eq(samples.id, id)))
-    .returning()
-  if (result.length === 0) {
-    return c.json({ error: 'Not found' }, 404)
-  }
-  return c.json(result[0])
-})
+export default app;
+export type AppType = typeof routes;
 
-// DELETE /samples/:id - ソフトデリート（deletedAtを設定）
-app.delete('/samples/:id', async (c) => {
-  const id = c.req.param('id')
-  const result = await db.update(samples)
-    .set({ deletedAt: new Date() })
-    .where(whereAndExcludeDeleted(samples, eq(samples.id, id)))
-    .returning()
-  if (result.length === 0) {
-    return c.json({ error: 'Not found' }, 404)
-  }
-  return c.json({ message: 'Deleted' })
-})
-
-serve({
-  fetch: app.fetch,
-  port: 3000
-}, (info) => {
-  console.log(`Server is running on http://localhost:${info.port}`)
-})
+serve({ fetch: app.fetch, port: PORT }, (info) => {
+  console.log(`Server is running on http://localhost:${info.port}`);
+});
